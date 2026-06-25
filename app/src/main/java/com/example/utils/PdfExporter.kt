@@ -638,7 +638,7 @@ object PdfExporter {
         try {
             val uri: Uri = FileProvider.getUriForFile(
                 context,
-                "com.example.fileprovider",
+                "${context.packageName}.fileprovider",
                 file
             )
             val intent = Intent(Intent.ACTION_SEND).apply {
