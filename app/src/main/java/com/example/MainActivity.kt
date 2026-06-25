@@ -28,6 +28,8 @@ import androidx.compose.ui.unit.sp
 import com.example.ui.screens.DashboardScreen
 import com.example.ui.screens.FormScreens
 import com.example.ui.screens.HistoryScreen
+import com.example.ui.screens.SettingsScreen
+import com.example.ui.screens.AviationUnitLogoMini
 import com.example.ui.theme.MyApplicationTheme
 import com.example.ui.viewmodel.AppScreen
 import com.example.ui.viewmodel.AviationViewModel
@@ -48,6 +50,21 @@ class MainActivity : ComponentActivity() {
                 val currentScreen by viewModel.currentScreen.collectAsState()
                 val selectedFormType by viewModel.selectedFormType.collectAsState()
                 
+                var isScanningQr by remember { mutableStateOf(false) }
+
+                if (isScanningQr) {
+                    com.example.ui.components.QrScannerDialog(
+                        onDismiss = { isScanningQr = false },
+                        onCodeScanned = { rawCode ->
+                            isScanningQr = false
+                            val cleanedCode = cleanScannedTag(rawCode)
+                            viewModel.updateSearchQuery(cleanedCode)
+                            viewModel.setScreen(AppScreen.HISTORY)
+                            Toast.makeText(context, "🔍 ค้นหาอุปกรณ์: $cleanedCode", Toast.LENGTH_LONG).show()
+                        }
+                    )
+                }
+
                 // Observe feedback messages from ViewModel securely
                 LaunchedEffect(Unit) {
                     viewModel.saveStatusMessage.collectLatest { message ->
@@ -71,22 +88,10 @@ class MainActivity : ComponentActivity() {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(12.dp)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Handyman,
-                                        contentDescription = "ตอนไฟฟ้า",
-                                        tint = MaterialTheme.colorScheme.onPrimary,
-                                        modifier = Modifier.size(22.dp)
-                                    )
-                                }
+                                AviationUnitLogoMini(size = 42.dp)
                                 Column {
                                     Text(
-                                        text = "ตอนไฟฟ้า",
+                                        text = "ระบบซ่อมบำรุง",
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 18.sp,
                                         color = MaterialTheme.colorScheme.onSurface
@@ -134,6 +139,14 @@ class MainActivity : ComponentActivity() {
                                         text = { Text("🔎 ประวัติข้อมูลฟอร์ม") },
                                         onClick = {
                                             viewModel.setScreen(AppScreen.HISTORY)
+                                            expandedMenu = false
+                                        }
+                                    )
+                                    DropdownMenuItem(
+                                        leadingIcon = { Icon(Icons.Default.Settings, contentDescription = null) },
+                                        text = { Text("⚙️ ตั้งค่าระบบ") },
+                                        onClick = {
+                                            viewModel.setScreen(AppScreen.SETTINGS)
                                             expandedMenu = false
                                         }
                                     )
@@ -190,6 +203,18 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             )
+
+                            NavigationBarItem(
+                                selected = currentScreen == AppScreen.SETTINGS,
+                                onClick = { viewModel.setScreen(AppScreen.SETTINGS) },
+                                label = { Text("ตั้งค่า", fontWeight = FontWeight.Bold, fontSize = 11.sp) },
+                                icon = {
+                                    Icon(
+                                        imageVector = if (currentScreen == AppScreen.SETTINGS) Icons.Default.Settings else Icons.Default.Settings,
+                                        contentDescription = "Settings"
+                                    )
+                                }
+                            )
                         }
                     },
                     contentWindowInsets = WindowInsets.safeDrawing
@@ -208,9 +233,10 @@ class MainActivity : ComponentActivity() {
                             },
                             label = "ScreenTransition"
                         ) { screen ->
-                            when (screen) {
+                             when (screen) {
                                 AppScreen.DASHBOARD -> DashboardScreen(
-                                    viewModel = viewModel
+                                    viewModel = viewModel,
+                                    onStartScan = { isScanningQr = true }
                                 )
                                 AppScreen.FORMS -> Column {
                                     // Row of fast quick selectors for the active form
@@ -224,6 +250,10 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                                 AppScreen.HISTORY -> HistoryScreen(
+                                    viewModel = viewModel,
+                                    onStartScan = { isScanningQr = true }
+                                )
+                                AppScreen.SETTINGS -> SettingsScreen(
                                     viewModel = viewModel
                                 )
                             }
@@ -232,6 +262,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun cleanScannedTag(raw: String): String {
+        var cleaned = raw.trim()
+        val prefixes = listOf("S/N:", "P/N:", "MSN:", "WO:", "WS:", "WB:", "SHR:", "CRS:")
+        for (prefix in prefixes) {
+            if (cleaned.startsWith(prefix, ignoreCase = true)) {
+                cleaned = cleaned.substring(prefix.length).trim()
+            }
+        }
+        return cleaned
     }
 }
 

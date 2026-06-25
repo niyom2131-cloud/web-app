@@ -2,6 +2,7 @@ package com.example.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -33,6 +34,7 @@ import java.util.Locale
 @Composable
 fun DashboardScreen(
     viewModel: AviationViewModel,
+    onStartScan: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val allRecords by viewModel.allSavedRecords.collectAsState()
@@ -70,37 +72,41 @@ fun DashboardScreen(
                     )
                     .padding(20.dp)
             ) {
-                Column(
-                    modifier = Modifier.align(Alignment.CenterStart)
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Build,
-                            contentDescription = "Bolt",
-                            tint = MaterialTheme.colorScheme.onPrimary,
-                            modifier = Modifier.size(28.dp)
-                        )
                         Text(
-                            text = "ตอนไฟฟ้า มว.ควบคุมฯ",
+                            text = "ร้อย.ซบร.บ.ทบ.สท.",
                             style = MaterialTheme.typography.titleMedium,
                             color = MaterialTheme.colorScheme.onPrimary,
                             fontWeight = FontWeight.Bold
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "ระบบจัดการแบบฟอร์มปฏิบัติงานดิจิทัล",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.ExtraBold,
+                            lineHeight = 28.sp
+                        )
+                        Text(
+                            text = "Aviation Maintenance Management System",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                        )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "ระบบจัดการแบบฟอร์มปฏิบัติงานดิจิทัล",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        text = "ร้อย.ซบร.บ.ทบ.สท. (Aviation Maintenance System)",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+
+                    // Display the gorgeous military emblem logo here!
+                    AviationUnitLogo(
+                        size = 110.dp,
+                        showText = false,
+                        modifier = Modifier.padding(start = 8.dp)
                     )
                 }
 
@@ -112,6 +118,68 @@ fun DashboardScreen(
                         .background(Color(0xFF14FFEC))
                         .align(Alignment.TopEnd)
                 )
+            }
+        }
+
+        // QR SCANNER INTEGRATIVE CARD
+        item {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onStartScan() }
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f),
+                        shape = RoundedCornerShape(16.dp)
+                    ),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.12f)
+                ),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.QrCodeScanner,
+                            contentDescription = "Scan",
+                            tint = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "สแกน QR แท็กอุปกรณ์ (QR Equipment Scanner)",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "สแกนบาร์โค้ด / ป้ายซีเรียลบนชิ้นส่วน เพื่อดึงข้อมูลประวัติงานซ่อมทันที",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = "Go",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         }
 

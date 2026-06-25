@@ -10,7 +10,8 @@ import kotlinx.coroutines.launch
 enum class AppScreen {
     DASHBOARD,
     FORMS,
-    HISTORY
+    HISTORY,
+    SETTINGS
 }
 
 enum class FormType(val value: String, val code: String) {
@@ -24,6 +25,83 @@ enum class FormType(val value: String, val code: String) {
 class AviationViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AviationDatabase.getDatabase(application)
     private val repository = AviationRepository(database.dao())
+
+    // Persistence using SharedPreferences
+    private val prefs = application.getSharedPreferences("aviation_settings", android.content.Context.MODE_PRIVATE)
+
+    // Persistent Setting Flow variables
+    private val _defaultInspectorName = MutableStateFlow(prefs.getString("default_inspector", "") ?: "")
+    val defaultInspectorName: StateFlow<String> = _defaultInspectorName.asStateFlow()
+
+    private val _defaultRank = MutableStateFlow(prefs.getString("default_rank", "จ.ส.อ.") ?: "จ.ส.อ.")
+    val defaultRank: StateFlow<String> = _defaultRank.asStateFlow()
+
+    private val _defaultUnit = MutableStateFlow(prefs.getString("default_unit", "ร้อย.ซบร.บ.ทบ.สท.") ?: "ร้อย.ซบร.บ.ทบ.สท.")
+    val defaultUnit: StateFlow<String> = _defaultUnit.asStateFlow()
+
+    private val _defaultSection = MutableStateFlow(prefs.getString("default_section", "ตอนซ่อมโครงสร้าง") ?: "ตอนซ่อมโครงสร้าง")
+    val defaultSection: StateFlow<String> = _defaultSection.asStateFlow()
+
+    private val _autoSaveDraft = MutableStateFlow(prefs.getBoolean("auto_save_draft", true))
+    val autoSaveDraft: StateFlow<Boolean> = _autoSaveDraft.asStateFlow()
+
+    private val _enableSoundEffects = MutableStateFlow(prefs.getBoolean("enable_sound", true))
+    val enableSoundEffects: StateFlow<Boolean> = _enableSoundEffects.asStateFlow()
+
+    private val _defaultAircraftType = MutableStateFlow(prefs.getString("default_aircraft_type", "Bell 212") ?: "Bell 212")
+    val defaultAircraftType: StateFlow<String> = _defaultAircraftType.asStateFlow()
+
+    private val _defaultLocation = MutableStateFlow(prefs.getString("default_location", "โรงเก็บที่ 1") ?: "โรงเก็บที่ 1")
+    val defaultLocation: StateFlow<String> = _defaultLocation.asStateFlow()
+
+    private val _appThemeColor = MutableStateFlow(prefs.getString("app_theme_color", "Default Slate") ?: "Default Slate")
+    val appThemeColor: StateFlow<String> = _appThemeColor.asStateFlow()
+
+    // Setting update functions
+    fun updateDefaultInspectorName(name: String) {
+        _defaultInspectorName.value = name
+        prefs.edit().putString("default_inspector", name).apply()
+    }
+
+    fun updateDefaultRank(rank: String) {
+        _defaultRank.value = rank
+        prefs.edit().putString("default_rank", rank).apply()
+    }
+
+    fun updateDefaultUnit(unit: String) {
+        _defaultUnit.value = unit
+        prefs.edit().putString("default_unit", unit).apply()
+    }
+
+    fun updateDefaultSection(section: String) {
+        _defaultSection.value = section
+        prefs.edit().putString("default_section", section).apply()
+    }
+
+    fun updateAutoSaveDraft(enabled: Boolean) {
+        _autoSaveDraft.value = enabled
+        prefs.edit().putBoolean("auto_save_draft", enabled).apply()
+    }
+
+    fun updateEnableSoundEffects(enabled: Boolean) {
+        _enableSoundEffects.value = enabled
+        prefs.edit().putBoolean("enable_sound", enabled).apply()
+    }
+
+    fun updateDefaultAircraftType(type: String) {
+        _defaultAircraftType.value = type
+        prefs.edit().putString("default_aircraft_type", type).apply()
+    }
+
+    fun updateDefaultLocation(location: String) {
+        _defaultLocation.value = location
+        prefs.edit().putString("default_location", location).apply()
+    }
+
+    fun updateAppThemeColor(color: String) {
+        _appThemeColor.value = color
+        prefs.edit().putString("app_theme_color", color).apply()
+    }
 
     // UI general navigation states
     private val _currentScreen = MutableStateFlow(AppScreen.DASHBOARD)
@@ -243,6 +321,12 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
         viewModelScope.launch {
             repository.clearAllRecords()
             _saveStatusMessage.emit("🗑️ เคลียร์ประวัติทั้งหมดแล้ว")
+        }
+    }
+
+    fun insertRecords(records: List<AviationRecord>) {
+        viewModelScope.launch {
+            records.forEach { repository.insertRecord(it) }
         }
     }
 }

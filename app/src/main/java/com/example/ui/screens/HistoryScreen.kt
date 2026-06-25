@@ -33,6 +33,7 @@ import com.example.ui.viewmodel.AviationViewModel
 @Composable
 fun HistoryScreen(
     viewModel: AviationViewModel,
+    onStartScan: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -50,23 +51,44 @@ fun HistoryScreen(
             .padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Search & Filters Header
-        OutlinedTextField(
-            value = searchQuery,
-            onValueChange = { viewModel.updateSearchQuery(it) },
-            placeholder = { Text("ค้นหาเลขที่, หัวข้อ หรือวันที่...") },
+        // Search & Filters Header Row with integrated QR Scanner button
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            leadingIcon = { Icon(Icons.Default.Search, null) },
-            trailingIcon = if (searchQuery.isNotEmpty()) {
-                {
-                    IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                        Icon(Icons.Default.Clear, null)
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.updateSearchQuery(it) },
+                placeholder = { Text("ค้นหาเลขที่, หัวข้อ หรือวันที่...") },
+                modifier = Modifier.weight(1f),
+                leadingIcon = { Icon(Icons.Default.Search, null) },
+                trailingIcon = if (searchQuery.isNotEmpty()) {
+                    {
+                        IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                            Icon(Icons.Default.Clear, null)
+                        }
                     }
-                }
-            } else null,
-            shape = androidx.compose.foundation.shape.CircleShape,
-            singleLine = true
-        )
+                } else null,
+                shape = androidx.compose.foundation.shape.CircleShape,
+                singleLine = true
+            )
+
+            FilledIconButton(
+                onClick = onStartScan,
+                modifier = Modifier.size(48.dp),
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.QrCodeScanner,
+                    contentDescription = "Scan QR Tag",
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
 
         // Horizontal Category Filter Row
         Row(
@@ -97,6 +119,54 @@ fun HistoryScreen(
                     selected = categoryFilter,
                     onSelect = { viewModel.setCategoryFilter(it) }
                 )
+            }
+        }
+
+        // Summary Count and Export PDF Report Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "พบใบงานทั้งหมด ${filteredRecords.size} รายการ",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+            )
+
+            Button(
+                onClick = {
+                    if (filteredRecords.isEmpty()) {
+                        Toast.makeText(context, "ไม่มีข้อมูลที่สามารถส่งออกเป็นรายงานได้", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val desc = when {
+                            categoryFilter != null && searchQuery.isNotBlank() -> "ประเภท $categoryFilter, คำค้นหา: \"$searchQuery\""
+                            categoryFilter != null -> "ประเภท $categoryFilter"
+                            searchQuery.isNotBlank() -> "คำค้นหา: \"$searchQuery\""
+                            else -> "ทั้งหมดในระบบ"
+                        }
+                        val file = com.example.utils.PdfExporter.exportRecordListToPdf(context, filteredRecords, desc)
+                        if (file != null) {
+                            com.example.utils.PdfExporter.sharePdfFile(context, file)
+                        } else {
+                            Toast.makeText(context, "เกิดข้อผิดพลาดในการสร้าง PDF", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                },
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.height(34.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PictureAsPdf,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("รายงาน PDF", fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         }
 
@@ -495,7 +565,7 @@ fun RecordDetailsDialog(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     OutlinedButton(
                         onClick = {
@@ -506,19 +576,40 @@ fun RecordDetailsDialog(
                             Toast.makeText(context, "📋 คัดลอกข้อมูลเรียบร้อยแล้ว!", Toast.LENGTH_SHORT).show()
                         },
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                     ) {
-                        Icon(Icons.Default.ContentCopy, null)
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("คัดลอกข้อบท")
+                        Icon(Icons.Default.ContentCopy, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("คัดลอก", fontSize = 11.sp)
+                    }
+
+                    Button(
+                        onClick = {
+                            val file = com.example.utils.PdfExporter.exportSingleRecordToPdf(context, record)
+                            if (file != null) {
+                                com.example.utils.PdfExporter.sharePdfFile(context, file)
+                            } else {
+                                Toast.makeText(context, "เกิดข้อผิดพลาดในการสร้าง PDF", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        modifier = Modifier.weight(1.3f),
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                    ) {
+                        Icon(Icons.Default.PictureAsPdf, null, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("ส่งออก PDF", fontSize = 11.sp)
                     }
 
                     Button(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
                     ) {
-                        Text("ปิดหน้าต่าง")
+                        Text("ปิด", fontSize = 11.sp)
                     }
                 }
             }

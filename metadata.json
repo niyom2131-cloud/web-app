@@ -1,6 +1,6 @@
 {
   "name": "Aviation Maintenance System",
-  "description": "ระบบจัดการแบบฟอร์มปฏิบัติงาน ตอนไฟฟ้า มว.ควบคุมฯ ร้อย.ซบร.บ.ทบ.สท. สำหรับบันทึกและจัดการข้อมูลการซ่อมบำรุงแบบดิจิทัล",
+  "description": "ระบบจัดการแบบฟอร์มปฏิบัติงาน ร้อย.ซบร.บ.ทบ.สท. สำหรับบันทึกและจัดการข้อมูลการซ่อมบำรุงแบบดิจิทัล",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

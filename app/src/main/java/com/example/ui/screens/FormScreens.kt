@@ -49,18 +49,7 @@ fun FormScreens(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Icon(
-                        imageVector = when (selectedFormType) {
-                            FormType.WO -> Icons.AutoMirrored.Filled.Assignment
-                            FormType.WS -> Icons.Default.Description
-                            FormType.WB -> Icons.Default.RateReview
-                            FormType.SHR -> Icons.Default.Sync
-                            FormType.CRS -> Icons.AutoMirrored.Filled.FactCheck
-                        },
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    AviationUnitLogoMini(size = 44.dp)
                     Column {
                         Text(
                             text = getFormTitle(selectedFormType),
@@ -69,7 +58,7 @@ fun FormScreens(
                             color = MaterialTheme.colorScheme.onPrimaryContainer
                         )
                         Text(
-                            text = "มว.ควบคุมฯ ร้อย.ซบร.บ.ทบ.สท. (ตอนไฟฟ้า)",
+                            text = "ร้อย.ซบร.บ.ทบ.สท. (Aviation Maintenance Form)",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                         )
