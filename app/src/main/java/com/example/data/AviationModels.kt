@@ -15,7 +15,8 @@ data class AviationRecord(
     val title: String,         // Secondary identifier (e.g., Aircraft model or item name)
     val date: String,          // Primary log date
     val savedAt: Long = System.currentTimeMillis(),
-    val jsonContent: String    // Full form fields stored securely as JSON
+    val jsonContent: String,   // Full form fields stored securely as JSON
+    val status: String = "Pending" // "Pending", "In-Progress", "Completed"
 )
 
 // Inner model representations for the 5 forms

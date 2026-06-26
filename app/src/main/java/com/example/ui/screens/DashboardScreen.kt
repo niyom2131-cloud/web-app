@@ -403,12 +403,18 @@ fun DashboardScreen(
 
                         // Text content
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "เลขที่: ${record.referenceNo}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "เลขที่: ${record.referenceNo}",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onBackground
+                                )
+                                StatusBadgeMini(status = record.status)
+                            }
                             Text(
                                 text = record.title,
                                 style = MaterialTheme.typography.bodySmall,
@@ -548,5 +554,27 @@ fun formatTime(timestamp: Long): String {
         sdf.format(Date(timestamp))
     } catch (e: Exception) {
         ""
+    }
+}
+
+@Composable
+fun StatusBadgeMini(status: String, modifier: Modifier = Modifier) {
+    val (backgroundColor, textColor, label) = when (status) {
+        "Completed" -> Triple(Color(0xFFE8F5E9), Color(0xFF2E7D32), "เสร็จสิ้น")
+        "In-Progress" -> Triple(Color(0xFFFFF9C4), Color(0xFFF57F17), "กำลังทำ")
+        else -> Triple(Color(0xFFFFEBEE), Color(0xFFC62828), "รอดำเนินการ")
+    }
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(6.dp))
+            .background(backgroundColor)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(
+            text = label,
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Bold,
+            color = textColor
+        )
     }
 }

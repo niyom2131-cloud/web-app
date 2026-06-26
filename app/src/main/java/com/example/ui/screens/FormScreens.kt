@@ -13,6 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -92,31 +94,151 @@ fun FormScreens(
             }
         }
 
+        // Initial Status Selector Card
+        item {
+            val activeFormStatus by viewModel.activeFormStatus.collectAsState()
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                ),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "⚙️ กำหนดสถานะงานซ่อม (Repair Task Status)",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = "เลือกสถานะการซ่อมบำรุงขั้นแรกสำหรับใบงานนี้",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val statusOptions = listOf(
+                            Pair("Pending", "รอดำเนินการ"),
+                            Pair("In-Progress", "กำลังทำ"),
+                            Pair("Completed", "เสร็จสิ้น")
+                        )
+                        statusOptions.forEach { option ->
+                            val statusKey = option.first
+                            val statusLabel = option.second
+                            val isSelected = activeFormStatus == statusKey
+                            val chipBg = when (statusKey) {
+                                "Completed" -> if (isSelected) Color(0xFF2E7D32) else Color(0xFFE8F5E9)
+                                "In-Progress" -> if (isSelected) Color(0xFFF57F17) else Color(0xFFFFF9C4)
+                                else -> if (isSelected) Color(0xFFC62828) else Color(0xFFFFEBEE)
+                            }
+                            val chipContentColor = when (statusKey) {
+                                "Completed" -> if (isSelected) Color.White else Color(0xFF2E7D32)
+                                "In-Progress" -> if (isSelected) Color.White else Color(0xFFF57F17)
+                                else -> if (isSelected) Color.White else Color(0xFFC62828)
+                            }
+                            
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(chipBg)
+                                    .clickable { viewModel.updateActiveFormStatus(statusKey) }
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = statusLabel,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = chipContentColor
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Standard Submit Button
         item {
             Spacer(modifier = Modifier.height(12.dp))
-            Button(
-                onClick = { viewModel.saveActiveForm() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = androidx.compose.foundation.shape.CircleShape
+            val context = LocalContext.current
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Save,
-                    contentDescription = "Save Icon",
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "บันทึกข้อมูล ${getFormAbbr(selectedFormType)}",
-                    fontWeight = FontWeight.ExtraBold,
-                    fontSize = 16.sp
-                )
+                Button(
+                    onClick = { viewModel.saveActiveForm() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    shape = androidx.compose.foundation.shape.CircleShape
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Save,
+                        contentDescription = "Save Icon",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "บันทึกข้อมูล ${getFormAbbr(selectedFormType)}",
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 16.sp
+                    )
+                }
+
+                FilledTonalButton(
+                    onClick = {
+                        val record = viewModel.getRecordFromCurrentDraft()
+                        if (record != null) {
+                            val file = com.example.utils.PdfExporter.exportSingleRecordToPdf(context, record)
+                            if (file != null) {
+                                com.example.utils.PdfExporter.sharePdfFile(context, file)
+                            } else {
+                                android.widget.Toast.makeText(context, "เกิดข้อผิดพลาดในการสร้าง PDF", android.widget.Toast.LENGTH_SHORT).show()
+                            }
+                        } else {
+                            android.widget.Toast.makeText(
+                                context,
+                                "⚠️ โปรดระบุรหัสเอกสารหลักบังคับ (*) ก่อนส่งออก PDF",
+                                android.widget.Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ),
+                    shape = androidx.compose.foundation.shape.CircleShape
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PictureAsPdf,
+                        contentDescription = "PDF Icon",
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "พิมพ์ / ส่งออกรายงาน PDF (Draft)",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                }
             }
         }
     }

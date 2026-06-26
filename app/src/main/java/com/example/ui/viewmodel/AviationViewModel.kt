@@ -110,20 +110,52 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
     private val _selectedFormType = MutableStateFlow(FormType.WO)
     val selectedFormType: StateFlow<FormType> = _selectedFormType.asStateFlow()
 
+    private val _activeFormStatus = MutableStateFlow("Pending")
+    val activeFormStatus: StateFlow<String> = _activeFormStatus.asStateFlow()
+
+    fun updateActiveFormStatus(status: String) {
+        _activeFormStatus.value = status
+    }
+
+    private fun loadWoDraft(): WorkOrderData {
+        val json = prefs.getString("draft_wo", null)
+        return if (json != null) AviationSerializer.toWo(json) else WorkOrderData()
+    }
+
+    private fun loadWsDraft(): WorkSheetData {
+        val json = prefs.getString("draft_ws", null)
+        return if (json != null) AviationSerializer.toWs(json) else WorkSheetData()
+    }
+
+    private fun loadWbDraft(): WorkBriefData {
+        val json = prefs.getString("draft_wb", null)
+        return if (json != null) AviationSerializer.toWb(json) else WorkBriefData()
+    }
+
+    private fun loadShrDraft(): ShiftHandoverData {
+        val json = prefs.getString("draft_shr", null)
+        return if (json != null) AviationSerializer.toShr(json) else ShiftHandoverData()
+    }
+
+    private fun loadCrsDraft(): CertificateReleaseData {
+        val json = prefs.getString("draft_crs", null)
+        return if (json != null) AviationSerializer.toCrs(json) else CertificateReleaseData()
+    }
+
     // Indev form states (to preserve draft content when switching tabs)
-    private val _woDraft = MutableStateFlow(WorkOrderData())
+    private val _woDraft = MutableStateFlow(loadWoDraft())
     val woDraft: StateFlow<WorkOrderData> = _woDraft.asStateFlow()
 
-    private val _wsDraft = MutableStateFlow(WorkSheetData())
+    private val _wsDraft = MutableStateFlow(loadWsDraft())
     val wsDraft: StateFlow<WorkSheetData> = _wsDraft.asStateFlow()
 
-    private val _wbDraft = MutableStateFlow(WorkBriefData())
+    private val _wbDraft = MutableStateFlow(loadWbDraft())
     val wbDraft: StateFlow<WorkBriefData> = _wbDraft.asStateFlow()
 
-    private val _shrDraft = MutableStateFlow(ShiftHandoverData())
+    private val _shrDraft = MutableStateFlow(loadShrDraft())
     val shrDraft: StateFlow<ShiftHandoverData> = _shrDraft.asStateFlow()
 
-    private val _crsDraft = MutableStateFlow(CertificateReleaseData())
+    private val _crsDraft = MutableStateFlow(loadCrsDraft())
     val crsDraft: StateFlow<CertificateReleaseData> = _crsDraft.asStateFlow()
 
     // Log Query filters
@@ -180,23 +212,43 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
 
     // Draft updates
     fun updateWo(updater: (WorkOrderData) -> WorkOrderData) {
-        _woDraft.value = updater(_woDraft.value)
+        val updated = updater(_woDraft.value)
+        _woDraft.value = updated
+        if (_autoSaveDraft.value) {
+            prefs.edit().putString("draft_wo", AviationSerializer.fromWo(updated)).apply()
+        }
     }
 
     fun updateWs(updater: (WorkSheetData) -> WorkSheetData) {
-        _wsDraft.value = updater(_wsDraft.value)
+        val updated = updater(_wsDraft.value)
+        _wsDraft.value = updated
+        if (_autoSaveDraft.value) {
+            prefs.edit().putString("draft_ws", AviationSerializer.fromWs(updated)).apply()
+        }
     }
 
     fun updateWb(updater: (WorkBriefData) -> WorkBriefData) {
-        _wbDraft.value = updater(_wbDraft.value)
+        val updated = updater(_wbDraft.value)
+        _wbDraft.value = updated
+        if (_autoSaveDraft.value) {
+            prefs.edit().putString("draft_wb", AviationSerializer.fromWb(updated)).apply()
+        }
     }
 
     fun updateShr(updater: (ShiftHandoverData) -> ShiftHandoverData) {
-        _shrDraft.value = updater(_shrDraft.value)
+        val updated = updater(_shrDraft.value)
+        _shrDraft.value = updated
+        if (_autoSaveDraft.value) {
+            prefs.edit().putString("draft_shr", AviationSerializer.fromShr(updated)).apply()
+        }
     }
 
     fun updateCrs(updater: (CertificateReleaseData) -> CertificateReleaseData) {
-        _crsDraft.value = updater(_crsDraft.value)
+        val updated = updater(_crsDraft.value)
+        _crsDraft.value = updated
+        if (_autoSaveDraft.value) {
+            prefs.edit().putString("draft_crs", AviationSerializer.fromCrs(updated)).apply()
+        }
     }
 
     // Query filters
@@ -216,11 +268,26 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
     // Clear draft form inputs after successful submission
     fun clearDraftOf(type: FormType) {
         when (type) {
-            FormType.WO -> _woDraft.value = WorkOrderData()
-            FormType.WS -> _wsDraft.value = WorkSheetData()
-            FormType.WB -> _wbDraft.value = WorkBriefData()
-            FormType.SHR -> _shrDraft.value = ShiftHandoverData()
-            FormType.CRS -> _crsDraft.value = CertificateReleaseData()
+            FormType.WO -> {
+                _woDraft.value = WorkOrderData()
+                prefs.edit().remove("draft_wo").apply()
+            }
+            FormType.WS -> {
+                _wsDraft.value = WorkSheetData()
+                prefs.edit().remove("draft_ws").apply()
+            }
+            FormType.WB -> {
+                _wbDraft.value = WorkBriefData()
+                prefs.edit().remove("draft_wb").apply()
+            }
+            FormType.SHR -> {
+                _shrDraft.value = ShiftHandoverData()
+                prefs.edit().remove("draft_shr").apply()
+            }
+            FormType.CRS -> {
+                _crsDraft.value = CertificateReleaseData()
+                prefs.edit().remove("draft_crs").apply()
+            }
         }
     }
 
@@ -239,7 +306,8 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
                         referenceNo = data.woOn,
                         title = data.itemName.ifBlank { "ไม่เจาะจงหลักทรัพย์" },
                         date = data.repairDate.ifBlank { data.docDate },
-                        jsonContent = AviationSerializer.fromWo(data)
+                        jsonContent = AviationSerializer.fromWo(data),
+                        status = _activeFormStatus.value
                     )
                 }
                 FormType.WS -> {
@@ -253,7 +321,8 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
                         referenceNo = data.wsOn,
                         title = data.aircraftType,
                         date = data.date,
-                        jsonContent = AviationSerializer.fromWs(data)
+                        jsonContent = AviationSerializer.fromWs(data),
+                        status = _activeFormStatus.value
                     )
                 }
                 FormType.WB -> {
@@ -267,7 +336,8 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
                         referenceNo = data.wbOn,
                         title = "ผู้ปฏิบัติ: " + data.performer.ifBlank { "ไม่ระบุ" },
                         date = data.date,
-                        jsonContent = AviationSerializer.fromWb(data)
+                        jsonContent = AviationSerializer.fromWb(data),
+                        status = _activeFormStatus.value
                     )
                 }
                 FormType.SHR -> {
@@ -281,7 +351,8 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
                         referenceNo = data.shrOn,
                         title = data.aircraftType,
                         date = data.date,
-                        jsonContent = AviationSerializer.fromShr(data)
+                        jsonContent = AviationSerializer.fromShr(data),
+                        status = _activeFormStatus.value
                     )
                 }
                 FormType.CRS -> {
@@ -295,7 +366,8 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
                         referenceNo = data.crsOn,
                         title = data.aircraftType + " (S/N: " + (data.serialNo.ifBlank { "ไม่ระบุ" }) + ")",
                         date = data.crsOn, // Use reference identifier as date string or standard date
-                        jsonContent = AviationSerializer.fromCrs(data)
+                        jsonContent = AviationSerializer.fromCrs(data),
+                        status = _activeFormStatus.value
                     )
                 }
             }
@@ -304,8 +376,23 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
             if (resultId > 0) {
                 _saveStatusMessage.emit("✅ บันทึกข้อมูล ${_selectedFormType.value.value} สำเร็จ!")
                 clearDraftOf(_selectedFormType.value)
+                _activeFormStatus.value = "Pending" // reset to default
             } else {
                 _saveStatusMessage.emit("❌ มีข้อผิดพลาดในการบันทึกข้อมูล")
+            }
+        }
+    }
+
+    fun updateRecordStatus(recordId: Int, newStatus: String) {
+        viewModelScope.launch {
+            val record = repository.getRecordById(recordId)
+            if (record != null) {
+                val updatedRecord = record.copy(status = newStatus)
+                repository.insertRecord(updatedRecord)
+                if (_selectedViewRecord.value?.id == recordId) {
+                    _selectedViewRecord.value = updatedRecord
+                }
+                _saveStatusMessage.emit("✅ อัปเดตสถานะเป็น $newStatus สำเร็จ")
             }
         }
     }
@@ -327,6 +414,76 @@ class AviationViewModel(application: Application) : AndroidViewModel(application
     fun insertRecords(records: List<AviationRecord>) {
         viewModelScope.launch {
             records.forEach { repository.insertRecord(it) }
+        }
+    }
+
+    fun getRecordFromCurrentDraft(): AviationRecord? {
+        val type = _selectedFormType.value
+        return try {
+            when (type) {
+                FormType.WO -> {
+                    val data = _woDraft.value
+                    if (data.woOn.isBlank()) return null
+                    AviationRecord(
+                        type = "WO",
+                        referenceNo = data.woOn,
+                        title = data.itemName.ifBlank { "ไม่เจาะจงหลักทรัพย์" },
+                        date = data.repairDate.ifBlank { data.docDate },
+                        jsonContent = AviationSerializer.fromWo(data),
+                        status = _activeFormStatus.value
+                    )
+                }
+                FormType.WS -> {
+                    val data = _wsDraft.value
+                    if (data.wsOn.isBlank()) return null
+                    AviationRecord(
+                        type = "WS",
+                        referenceNo = data.wsOn,
+                        title = data.aircraftType,
+                        date = data.date,
+                        jsonContent = AviationSerializer.fromWs(data),
+                        status = _activeFormStatus.value
+                    )
+                }
+                FormType.WB -> {
+                    val data = _wbDraft.value
+                    if (data.wbOn.isBlank()) return null
+                    AviationRecord(
+                        type = "WB",
+                        referenceNo = data.wbOn,
+                        title = "ผู้ปฏิบัติ: " + data.performer.ifBlank { "ไม่ระบุ" },
+                        date = data.date,
+                        jsonContent = AviationSerializer.fromWb(data),
+                        status = _activeFormStatus.value
+                    )
+                }
+                FormType.SHR -> {
+                    val data = _shrDraft.value
+                    if (data.shrOn.isBlank()) return null
+                    AviationRecord(
+                        type = "SHR",
+                        referenceNo = data.shrOn,
+                        title = data.aircraftType,
+                        date = data.date,
+                        jsonContent = AviationSerializer.fromShr(data),
+                        status = _activeFormStatus.value
+                    )
+                }
+                FormType.CRS -> {
+                    val data = _crsDraft.value
+                    if (data.crsOn.isBlank()) return null
+                    AviationRecord(
+                        type = "CRS",
+                        referenceNo = data.crsOn,
+                        title = data.aircraftType + " (S/N: " + (data.serialNo.ifBlank { "ไม่ระบุ" }) + ")",
+                        date = data.crsOn,
+                        jsonContent = AviationSerializer.fromCrs(data),
+                        status = _activeFormStatus.value
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            null
         }
     }
 }

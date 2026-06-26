@@ -25,7 +25,7 @@ interface AviationDao {
     suspend fun clearAllRecords()
 }
 
-@Database(entities = [AviationRecord::class], version = 1, exportSchema = false)
+@Database(entities = [AviationRecord::class], version = 2, exportSchema = false)
 abstract class AviationDatabase : RoomDatabase() {
     abstract fun dao(): AviationDao
 

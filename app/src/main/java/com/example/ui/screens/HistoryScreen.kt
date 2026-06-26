@@ -216,6 +216,7 @@ fun HistoryScreen(
     selectedViewRecord?.let { record ->
         RecordDetailsDialog(
             record = record,
+            viewModel = viewModel,
             onDismiss = { viewModel.selectRecordToView(null) },
             context = context
         )
@@ -329,12 +330,18 @@ fun HistoryItemCard(
 
             // Central info
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "${getFormTypeName(record.type)}",
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        text = "${getFormTypeName(record.type)}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    StatusBadgeMini(status = record.status)
+                }
                 Text(
                     text = "Ref/ON: ${record.referenceNo}",
                     style = MaterialTheme.typography.bodyMedium,
@@ -381,6 +388,7 @@ fun HistoryItemCard(
 @Composable
 fun RecordDetailsDialog(
     record: AviationRecord,
+    viewModel: AviationViewModel,
     onDismiss: () -> Unit,
     context: Context
 ) {
@@ -453,6 +461,64 @@ fun RecordDetailsDialog(
                                 LabelValueRow("ชนิดฟอร์ม:", "${record.type} - ${getFormTypeName(record.type)}")
                                 LabelValueRow("ค่าคีย์อ้างอิงหลัก:", record.referenceNo)
                                 LabelValueRow("หัวข้อ/จำแนก:", record.title)
+                                LabelValueRow(
+                                    "สถานะปัจจุบัน:",
+                                    when (record.status) {
+                                        "Completed" -> "เสร็จสิ้น (Completed)"
+                                        "In-Progress" -> "กำลังดำเนินการ (In-Progress)"
+                                        else -> "รอดำเนินการ (Pending)"
+                                    }
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Divider(color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = "🔄 อัปเดตสถานะงานซ่อม (Change Status)",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    listOf(
+                                        "Pending" to "รอดำเนินการ",
+                                        "In-Progress" to "กำลังทำ",
+                                        "Completed" to "เสร็จสิ้น"
+                                    ).forEach { (statusKey, statusLabel) ->
+                                        val isCurrent = record.status == statusKey
+                                        val chipBg = when (statusKey) {
+                                            "Completed" -> if (isCurrent) Color(0xFF2E7D32) else Color(0xFFE8F5E9)
+                                            "In-Progress" -> if (isCurrent) Color(0xFFF57F17) else Color(0xFFFFF9C4)
+                                            else -> if (isCurrent) Color(0xFFC62828) else Color(0xFFFFEBEE)
+                                        }
+                                        val chipContentColor = when (statusKey) {
+                                            "Completed" -> if (isCurrent) Color.White else Color(0xFF2E7D32)
+                                            "In-Progress" -> if (isCurrent) Color.White else Color(0xFFF57F17)
+                                            else -> if (isCurrent) Color.White else Color(0xFFC62828)
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .weight(1f)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(chipBg)
+                                                .clickable { viewModel.updateRecordStatus(record.id, statusKey) }
+                                                .padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = statusLabel,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.ExtraBold,
+                                                color = chipContentColor
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
